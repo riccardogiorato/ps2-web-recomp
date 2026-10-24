@@ -1,0 +1,66 @@
+/* Original console-inspired chrome. Keep the game area and overlay controls clear. */
+:root { --accent: #b0d2ff; --menu-line: #8296bc42; --menu-text: #dce6fa; --menu-muted: #a5b8d6; --menu-selection: #f0d59a; }
+#bar { background: linear-gradient(180deg, #202a43 0, #10182b 16%, #070c17 100%); border-top-color: #8b9db275; box-shadow: 0 -1px 0 #03060c, inset 0 1px 0 #c4dbff0a; }
+#status { color: #b2bfd5; font-size: 11px; letter-spacing: .04em; }
+.status-dot { background: radial-gradient(circle at 35% 30%, #edf4ff, #91a8ce 35%, #314870 85%); box-shadow: 0 0 6px #99c5ff40; }
+.status-dot.running { background: radial-gradient(circle at 35% 30%, #f3ffff, #a4dbf4 30%, #4c87dc 65%, #244575); box-shadow: 0 0 7px #87b6ff66; }
+.status-dot.error { background: #ed9d8b; box-shadow: 0 0 6px #ed9d8b55; }
+#stats { color: #e9effb; }
+#stats b { font-weight: 500; text-shadow: 0 0 8px #bdd8ff33; }
+#stats > span, .metric-label { color: #9fb6db; font-size: 10px; letter-spacing: .07em; }
+.metric { border-left-color: #869bb333; }
+.bar-actions { gap: 2px; }
+.bar-actions .icon-button, .settings-head .icon-button { border-radius: 3px; color: #b5c8e8; }
+.bar-actions .icon-button:hover, .bar-actions .icon-button:focus-visible,
+.settings-head .icon-button:hover { color: #f5dfb2; border-color: #bacce244; background: linear-gradient(180deg, #6d89b333, #273e6322); }
+.bar-actions .icon-button[aria-pressed=true] { color: #f0d59a; border-color: #e3c68e55; background: linear-gradient(180deg, #b1c9ed22, #48659922); box-shadow: inset 0 -1px 0 #f0d59a77; }
+#settings { width: min(380px, calc(100vw - 20px)); border-radius: 3px; border-color: #9aaed166; color: var(--menu-text); background: radial-gradient(ellipse at 0 0, #23477f55, transparent 65%), linear-gradient(155deg, #121c35f7, #080c18fc 70%); box-shadow: 0 20px 70px #000b, inset 0 0 0 3px #050b1a, inset 0 0 45px #31579812; scrollbar-width: thin; scrollbar-color: #61789e #0b1223; }
+#settings::backdrop { background: #01040a99; }
+.settings-head { position: sticky; top: 0; z-index: 1; padding: 17px 18px 15px; gap: 10px; border-bottom-color: var(--menu-line); background: linear-gradient(100deg, #1e3153, #10182b); }
+.menu-eyebrow { display: block; margin-bottom: 6px; font-size: 8px; letter-spacing: .22em; color: #9ab4dc; }
+.settings-head h2 { color: #e5edfb; font-size: 16px; font-weight: 400; letter-spacing: .05em; text-shadow: 0 0 14px #a5c6ff33; }
+.settings-content { padding: 5px 18px 18px; }
+.setting-row { position: relative; gap: 10px; padding-left: 13px; font-size: 12px; color: #cad9ef; border-bottom: 1px solid #8aa4c214; }
+.setting-row::before { content: ''; position: absolute; left: 1px; width: 4px; height: 4px; border: 1px solid #8da9d288; transform: rotate(45deg); }
+.setting-row:hover, .setting-row:focus-within { color: var(--menu-selection); background: linear-gradient(90deg, #7399df12, transparent); }
+.setting-row:hover::before, .setting-row:focus-within::before { background: var(--menu-selection); border-color: var(--menu-selection); box-shadow: 0 0 7px #f0d59a55; }
+#settings select, #settings .settings-content button { background: linear-gradient(180deg, #293c5c80, #101a2e); border: 1px solid #8199bf66; border-radius: 2px; color: #dae7fc; box-shadow: inset 0 1px 0 #d2e5ff0c; font-size: 11px; }
+#settings select { max-width: 58%; padding: 8px; }
+#settings option { background: #111c31; color: #e5edfb; }
+#settings input[type=checkbox] { accent-color: #a7c9f6; }
+#settings .settings-content button:hover, #settings .settings-content button:focus-visible { color: #ffe5b2; border-color: #ddc594a3; background: linear-gradient(180deg, #435a7d80, #1c2a43); }
+#settings :is(button, select, input):focus-visible { outline: 1px solid #f0d59a; outline-offset: 3px; }
+.settings-section { margin-top: 17px; padding-top: 13px; border-top-color: var(--menu-line); }
+.settings-section h3 { display: flex; align-items: center; gap: 8px; color: #c1d3f1; font-size: 10px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+.settings-section h3::before { content: ''; width: 7px; height: 9px; border: 1px solid #a3bbdf99; background: linear-gradient(135deg, #b2cbed33, #172743); box-shadow: 2px 2px 0 #9db4d51a; }
+#settings .hint { color: var(--menu-muted); font-size: 11px; }
+.button-row { gap: 10px; }
+.quick-actions { display: flex; gap: 3px; padding-right: 6px; margin-right: 3px; border-right: 1px solid var(--menu-line); }
+.quick-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 4px 9px; border: 1px solid #8aa5cf44; border-radius: 3px; color: #d5e4fc; background: linear-gradient(180deg, #36517b44, #10213c44); font-size: 11px; }
+.quick-button:hover:enabled { color: #ffe5b2; border-color: #ddc594a3; background: #30487066; }
+.quick-button:disabled { cursor: default; opacity: .35; }
+.quick-notice { position: absolute; bottom: calc(100% + 9px); right: max(10px, env(safe-area-inset-right)); max-width: min(340px, calc(100vw - 20px)); pointer-events: none; }
+.quick-notice > span { display: block; padding: 10px 14px; border: 1px solid #9bb6df66; border-radius: 3px; background: #0d1930f5; color: #e0ebff; font-size: 12px; line-height: 1.5; box-shadow: 0 6px 20px #0007; }
+@media (max-width: 560px) {
+  #status { display: none; }
+  .bar-main { gap: 4px; }
+  #stats { margin: 0 3px 0 0; }
+  .quick-actions { gap: 2px; padding-right: 3px; margin-right: 1px; }
+  .quick-button { padding-inline: 7px; min-width: 43px; }
+  .quick-button svg { display: none; }
+  .bar-actions { margin-left: auto; }
+}
+#settings button:disabled { cursor: default; }
+.debug-report-text { width: 100%; height: 150px; margin-top: 8px; padding: 8px; background: #060d1b; color: #dce6fa; border: 1px solid var(--menu-line); border-radius: 2px; font: 10px/1.5 ui-monospace, monospace; resize: vertical; }
+.keyboard-guide summary { padding: 6px 0; color: #c1d3f1; font-size: 12px; letter-spacing: .05em; cursor: pointer; }
+.keyboard-guide summary:focus-visible { outline: 1px solid var(--menu-selection); outline-offset: 3px; }
+.keyboard-guide dl { margin: 10px 0; }
+.keyboard-guide dl > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #8aa4c214; font-size: 11px; }
+.keyboard-guide dd { margin: 0; }
+.keyboard-guide kbd { display: inline-block; min-width: 23px; padding: 3px 5px; text-align: center; background: #20335277; border: 1px solid #8199bf55; border-bottom-width: 2px; border-radius: 3px; font: 10px ui-monospace, monospace; color: #e2edff; }
+@media (orientation: portrait) {
+  body.touch #touch { background: radial-gradient(ellipse at 50% 0, #162b4e44, transparent 75%), #04070e; border-top: 1px solid #7d94b329; }
+  body.touch .ctl, body.touch .dpad span, body.touch .stick { border-color: #b6c7e14d; }
+  body.touch .shoulder, body.touch .small { border-radius: 3px; letter-spacing: .08em; }
+}
+@media (max-width: 360px) { .settings-content { padding-inline: 12px; } .settings-head { padding-inline: 12px; } .setting-row { font-size: 11px; } }

@@ -75,6 +75,64 @@ The page needs WebGPU for the GPU renderer. Chrome and Edge have it on Windows a
 
 The keyboard maps the face buttons to Z (cross), X (circle), A (square) and S (triangle), the shoulders to Q, W, 1 and 2, start and select to Enter and Backspace, the D-pad to the arrow keys and the left stick to I, J, K and L. Gamepads work through the browser's gamepad API. Their analog triggers reach the game as the DualShock 2's pressure-sensitive L2 and R2, and controllers with motors vibrate when the game asks for it, in browsers that expose vibration (Chrome and Edge do). Phones get on-screen controls, and F toggles fullscreen. The resolution selector reloads the page at the new size, and so does the 4:3/16:9 selector, which tells the game the TV is widescreen the way the PS2's system settings do and shows the picture at that shape. Most games need a widescreen patch or their own menu option to draw for it.
 
+## Web interface development
+
+The player UI lives in `web/src` and uses React and Vite. The emulation bridge is
+in `web/src/player.js`; it loads the game-specific Emscripten runtime separately.
+A normal `scripts/build_web.sh <game>` builds both the runtime and the interface
+(Node.js 22.12+ and npm are required). CMake also exposes `ps2web_ui` for the combined
+build.
+
+To edit just the interface after building a game:
+
+```bash
+npm ci --prefix web
+npm run build --prefix web -- --outDir ../build/web-kh2
+```
+
+This only bundles the interface; it does not recompile the game's C++. For local
+UI development, keep the game server on port 8620 and run `npm run dev --prefix web` on loopback port 8621. The dev server proxies the runtime and disc requests
+to the game server. Runtime-affecting edits reload the page rather than creating
+another emulation instance. `npm test --prefix web` checks cache behavior and
+telemetry helpers, plus quick-save replacement, compatibility and failure handling.
+
+Only FPS is visible by default. The debug button reveals a compact, scrollable
+strip of real performance counters; settings contain resolution, aspect ratio,
+controller visibility and memory-card import/export. Both analog sticks are
+available on touch screens. Landscape controls overlay the game with translucent
+fills and outlines; portrait controls sit below it.
+Settings offer a single **Antialiasing** switch using FXAA. It applies
+immediately and persists on the device. Previous advanced image settings are
+reset, so hidden sharpening or filtering cannot remain enabled. Antialiasing
+requires direct WebGPU presentation. For shader regression checks with
+wgpu-native installed, build and run
+`ninja -C build/native-kh2 ps2_blit_test && build/native-kh2/ps2_blit_test`.
+Settings include an expandable keyboard reference and **Copy debug info**. Copy
+a report while a problem is occurring to share browser/GPU details, recent
+performance samples, frame-timing summaries and bounded runner logs. Clipboard
+restrictions fall back to a selectable report. Quick Load starts a fresh timing
+window so restored frame numbers are not mistaken for rendering speed.
+
+The bottom bar has **Save** and **Load** buttons: one browser-local quick-save
+slot per game URL. Saving again atomically replaces the slot; loading restores
+the running machine without an in-game save point. Start the game before using
+either button. The slot survives a page reload and is separate from memory-card
+files and the downloaded-player cache. Rendering updates preserve state
+compatibility; slots identify the game data and the engine validates the state
+format. Legacy slots remain loadable at their original game URL. Keep regular memory-card backups
+as well, since browsers can clear local storage.
+
+On supported browsers the player downloads and caches its interface, JavaScript,
+Wasm and startup data. Builds are versioned; UI-only updates reuse unchanged
+runtime files. Download progress and initialization states are shown before the
+Start button becomes available. Progress shows readable KB/MB/GB sizes and a
+byte-based percentage when totals are known, with an indeterminate bar otherwise.
+These are decoded player-file sizes, not compressed network-transfer sizes.
+Settings can clear these downloads without
+clearing memory-card saves. Disc images and range requests are excluded from
+this cache: this is not yet offline game support. Keep exports of your saves,
+since browser storage can be cleared by the browser or user.
+
 ## Playing natively
 
 The native runner, `build/native-mygame/ps2run`, plays the game in a window when SDL2 is installed; `scripts/port.sh mygame "My Game.iso" --native-only` builds only this one. It draws through wgpu-native on Vulkan and plays sound through SDL. The keyboard uses the page's keys for the buttons, with the arrow keys as both the D-pad and the left stick, and any game controller SDL recognizes works too, the Steam Deck's own controls included, with the same trigger pressure and vibration as in the browser.

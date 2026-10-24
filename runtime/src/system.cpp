@@ -15,6 +15,8 @@
 #include "ps2/generated.hpp"
 #include "ps2/memory.hpp"
 #include "ps2/state.hpp"
+#include "ps2/state_request.hpp"
+#include "ps2/video.hpp"
 #include "ps2/system.hpp"
 
 #ifdef __EMSCRIPTEN__
@@ -30,6 +32,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <iterator>
+#include <mutex>
 #include <stdexcept>
 
 namespace ps2 {
@@ -56,6 +59,11 @@ std::uint64_t g_frames = 0;
 std::uint64_t g_iop_synced = 0;
 bool g_state_request = false;
 bool g_resumed = false;
+std::atomic<int> g_state_operation{0};
+std::atomic<std::uint32_t> g_video_options{0};
+std::mutex g_state_mutex;
+std::string g_state_path;
+void (*g_state_complete)(bool, bool) = nullptr;
 
 std::uint64_t next_event_time() {
     std::uint64_t t = UINT64_MAX;
@@ -229,7 +237,7 @@ std::uint64_t scheduled_at(int event) {
 bool preempt(Cpu &c) {
     run_due_events();
     refill(c);
-    return g_halted || g_state_request || kernel::must_unwind();
+    return g_halted || g_state_request || g_state_operation.load(std::memory_order_relaxed) || kernel::must_unwind();
 }
 
 void halt(const std::string &reason) {
@@ -300,6 +308,18 @@ void machine_state(state::Stream &s) {
 }
 
 }
+
+bool request_state_operation(bool loading, const char *path, void (*complete)(bool, bool)) {
+    std::lock_guard<std::mutex> lock(g_state_mutex);
+    if (g_state_operation.load(std::memory_order_acquire)) return false;
+    g_state_path = path;
+    g_state_complete = complete;
+    g_state_operation.store(loading ? 2 : 1, std::memory_order_release);
+    return true;
+}
+
+void set_video_options(std::uint32_t options) { g_video_options.store(options, std::memory_order_relaxed); }
+std::uint32_t video_options() { return g_video_options.load(std::memory_order_relaxed); }
 
 bool save_state(const std::string &path) {
     try {
@@ -405,6 +425,18 @@ int run() {
     Cpu &c = g_cpu;
     if (!g_resumed) set_budget(c, kMaxSlice);
     while (!g_halted) {
+        if (const int operation = g_state_operation.load(std::memory_order_acquire)) {
+            // Request fields stay immutable until completion; never serialize
+            // from the browser thread while the emulated CPUs are running.
+            const bool loading = operation == 2;
+            const bool success = loading ? load_state(g_state_path) : save_state(g_state_path);
+            const auto complete = g_state_complete;
+            g_state_operation.store(0, std::memory_order_release);
+            if (complete) complete(loading, success);
+            // A malformed state may have partially replaced machine memory.
+            if (loading && !success) halt("Quick load failed. Reload the player to continue safely.");
+            if (g_halted) break;
+        }
         if (g_state_request) {
             g_state_request = false;
             save_state(g_options.save_state_path);
