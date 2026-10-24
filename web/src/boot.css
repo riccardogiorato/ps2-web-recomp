@@ -1,0 +1,42 @@
+/* Atmospheric boot scene, kept separate from the compact in-game interface. */
+.boot-scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: #03050c; }
+.boot-haze { position: absolute; inset: -25%; background: radial-gradient(ellipse at 48% 43%, #284dac70, transparent 27%), radial-gradient(ellipse at 58% 57%, #18368466, transparent 34%), radial-gradient(ellipse at 38% 60%, #10377c55, transparent 29%); animation: boot-breathe 14s ease-in-out infinite alternate; }
+.boot-field { position: absolute; width: min(920px, 115vw); height: min(660px, 95dvh); left: 50%; top: 50%; transform: translate(-50%, -50%); perspective: 700px; }
+.boot-drift { position: absolute; width: var(--size); height: var(--size); transform-style: preserve-3d; animation: boot-drift var(--duration) ease-in-out var(--delay) infinite alternate; }
+.boot-cube { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; animation: boot-turn 40s linear var(--delay) infinite; }
+.boot-face { position: absolute; inset: 0; border: 1px solid #b9d6ff38; backface-visibility: hidden; background: linear-gradient(145deg, #b9cfe0aa, #51648d99); box-shadow: inset 0 0 12px #9ec6ff20; }
+.boot-front { transform: translateZ(calc(var(--size) / 2)); }
+.boot-back { transform: rotateY(180deg) translateZ(calc(var(--size) / 2)); background: #263b5dbb; }
+.boot-left { transform: rotateY(-90deg) translateZ(calc(var(--size) / 2)); background: linear-gradient(45deg, #22304bbf, #6d86b6bb); }
+.boot-right { transform: rotateY(90deg) translateZ(calc(var(--size) / 2)); background: linear-gradient(45deg, #21304cbb, #536b99bb); }
+.boot-top { transform: rotateX(90deg) translateZ(calc(var(--size) / 2)); background: #a1bdd2aa; }
+.boot-bottom { transform: rotateX(-90deg) translateZ(calc(var(--size) / 2)); background: #1b2c4dbb; }
+.boot-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 18%, #03050c77 65%, #03050c 100%); }
+#overlay { overflow: auto; isolation: isolate; background: #03050c; }
+#panel { position: relative; z-index: 1; padding: 20px 12px; text-shadow: 0 2px 12px #000, 0 0 30px #03050c; }
+#panel::before { content: ''; position: absolute; z-index: -1; inset: -35px -45px; background: radial-gradient(ellipse, #03050cd9 15%, #03050c99 45%, transparent 72%); pointer-events: none; }
+#panel .player-mark { display: inline-block; color: #e4edff; font-size: 16px; font-weight: 500; letter-spacing: .32em; }
+#panel .player-mark span { display: block; margin-top: 9px; color: #a3b9d8; font-size: 8px; letter-spacing: .38em; }
+#panel h1 { font-size: clamp(20px, 4vw, 25px); font-weight: 400; letter-spacing: .03em; margin-top: 32px; }
+#panel .loading-message { min-height: 2lh; color: #b6c5df; }
+#panel progress { width: 72%; height: 2px; margin: 20px auto 12px; background: #273752; }
+#panel progress::-webkit-progress-bar { background: #273752; }
+#panel progress::-webkit-progress-value { background: #b0ceff; }
+#panel .hint { max-width: 290px; margin-inline: auto; color: #93a6c3; }
+#panel .start-button { min-width: 150px; border-radius: 4px; background: #152541cc; border-color: #8cacdd77; color: #e2edff; font-weight: 500; letter-spacing: .06em; text-shadow: none; }
+#panel .start-button:hover { background: #28436bd9; border-color: #a7caff; }
+.download-panel { margin: 20px auto 0; padding: 15px 16px 12px; border: 1px solid #8caee52b; border-radius: 4px; background: #0c193185; text-align: left; text-shadow: none; }
+.download-heading, .download-detail { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.download-heading { color: #d4e3fc; font-size: 12px; line-height: 1.5; }
+.download-heading strong { flex: none; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; color: #e2edff; }
+.download-detail { color: #a7bddf; font-size: 10px; font-variant-numeric: tabular-nums; }
+.download-detail > span { white-space: nowrap; }
+#panel .download-panel progress { width: 100%; margin: 12px 0 9px; height: 3px; }
+#panel .download-panel .hint { max-width: none; font-size: 10px; margin-top: 12px; color: #93a6c3; }
+.boot-paused *, .boot-paused { animation-play-state: paused; }
+@keyframes boot-breathe { from { transform: scale(.9) rotate(-12deg); opacity: .65; } to { transform: scale(1.15) rotate(14deg); opacity: 1; } }
+@keyframes boot-drift { from { transform: translate3d(-12px, -18px, -65px); opacity: .35; } to { transform: translate3d(16px, 20px, 50px); opacity: .8; } }
+@keyframes boot-turn { from { transform: rotateX(-18deg) rotateY(var(--turn)) rotateZ(8deg); } to { transform: rotateX(342deg) rotateY(calc(var(--turn) + 360deg)) rotateZ(8deg); } }
+@media (max-width: 500px) { .boot-field { width: 130vw; } #panel { padding-inline: 8px; } }
+@media (max-height: 450px) { #panel { padding-block: 4px; } #panel h1 { margin-top: 18px; } #panel .start-button { margin-top: 10px; } }
+@media (prefers-reduced-motion: reduce) { .boot-scene * { animation: none; } .boot-cube { transform: rotateX(-18deg) rotateY(var(--turn)) rotateZ(8deg); } .boot-drift { opacity: .55; } }

@@ -77,6 +77,9 @@ if(EMSCRIPTEN OR EXISTS "${PS2_WGPU_DIR}/lib/libwgpu_native.a")
     else()
         target_include_directories(ps2runtime PRIVATE "${PS2_WGPU_DIR}/include")
         target_link_libraries(ps2runtime PUBLIC "${PS2_WGPU_DIR}/lib/libwgpu_native.a" dl pthread m)
+        add_executable(ps2_blit_test EXCLUDE_FROM_ALL scripts/test_blit.cpp)
+        target_include_directories(ps2_blit_test PRIVATE "${PS2_WGPU_DIR}/include")
+        target_link_libraries(ps2_blit_test PRIVATE ps2runtime)
         if(APPLE)
             target_link_libraries(ps2runtime PUBLIC "-framework Metal" "-framework QuartzCore" "-framework Foundation" "-framework CoreFoundation" "-framework IOKit" "-framework IOSurface" objc)
         endif()
@@ -103,10 +106,25 @@ if(PS2_GENERATED)
         endif()
         target_link_libraries(ps2web PRIVATE ps2game ps2runtime)
         target_link_options(ps2web PRIVATE --profiling-funcs -sJSPI -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sPTHREAD_POOL_SIZE=2 -sALLOW_TABLE_GROWTH=1 -lidbfs.js -sSTACK_SIZE=16777216 -sENVIRONMENT=web
-            -sEXPORTED_FUNCTIONS=_main,_ps2web_pad,_ps2web_pad_connected,_ps2web_resize,_ps2web_gpu_ms,_ps2web_frames,_ps2web_primitives,_ps2web_audio_ring,_ps2web_audio_queued_ms,_ps2web_idle_ms,_ps2web_vu_interpreted
+            -sEXPORTED_FUNCTIONS=_main,_ps2web_pad,_ps2web_pad_connected,_ps2web_resize,_ps2web_gpu_ms,_ps2web_frames,_ps2web_primitives,_ps2web_audio_ring,_ps2web_audio_queued_ms,_ps2web_idle_ms,_ps2web_vu_interpreted,_ps2web_quick_state,_ps2web_video_options
             -sEXPORTED_RUNTIME_METHODS=callMain,addRunDependency,removeRunDependency,HEAPU8,ENV
             --shell-file ${CMAKE_SOURCE_DIR}/web/shell.html --preload-file ${PS2_WEB_ELF}@/game/core.elf)
         set_target_properties(ps2web PROPERTIES SUFFIX ".html" LINK_DEPENDS ${CMAKE_SOURCE_DIR}/web/shell.html)
+        find_program(PS2_NPM npm REQUIRED)
+        file(GLOB_RECURSE PS2_UI_SOURCES CONFIGURE_DEPENDS
+            "${CMAKE_SOURCE_DIR}/web/src/*" "${CMAKE_SOURCE_DIR}/web/public/*")
+        set(PS2_WEB_UI_DIR "${CMAKE_SOURCE_DIR}/web")
+        add_custom_command(OUTPUT "${PS2_WEB_UI_DIR}/node_modules/.player-deps"
+            COMMAND ${PS2_NPM} ci --no-audit --no-fund
+            COMMAND ${CMAKE_COMMAND} -E touch "${PS2_WEB_UI_DIR}/node_modules/.player-deps"
+            WORKING_DIRECTORY "${PS2_WEB_UI_DIR}"
+            DEPENDS "${PS2_WEB_UI_DIR}/package.json" "${PS2_WEB_UI_DIR}/package-lock.json")
+        add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/index.html" "${CMAKE_BINARY_DIR}/player-manifest.json"
+            COMMAND ${PS2_NPM} run build -- --outDir "${CMAKE_BINARY_DIR}"
+            WORKING_DIRECTORY "${PS2_WEB_UI_DIR}"
+            DEPENDS ps2web ${PS2_UI_SOURCES} "${PS2_WEB_UI_DIR}/index.html"
+                "${PS2_WEB_UI_DIR}/vite.config.js" "${PS2_WEB_UI_DIR}/node_modules/.player-deps")
+        add_custom_target(ps2web_ui ALL DEPENDS "${CMAKE_BINARY_DIR}/index.html" "${CMAKE_BINARY_DIR}/player-manifest.json")
         return()
     endif()
 

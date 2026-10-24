@@ -23,14 +23,14 @@ if '--host' in sys.argv:
 BUILD = os.path.abspath(sys.argv[1])
 DISC = os.path.abspath(sys.argv[2])
 PORT = int(sys.argv[3]) if len(sys.argv) > 3 else 8620
-TYPES = {'.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.data': 'application/octet-stream'}
+TYPES = {'.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.data': 'application/octet-stream', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml'}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def target(self):
         path = self.path.split('?', 1)[0]
         if path in ('/', '/index.html'):
-            path = '/ps2web.html'
+            path = '/index.html' if os.path.isfile(os.path.join(BUILD, 'index.html')) else '/ps2web.html'
         if path == '/disc.iso':
             return DISC
         if path.endswith('/'):

@@ -6,7 +6,7 @@ struct Blit {
     blend: u32,
     out_width: u32,
     out_height: u32,
-    pad: u32,
+    options: u32,
 }
 
 @group(0) @binding(0) var<storage, read> pixels: array<u32>;
@@ -34,11 +34,17 @@ fn texel(base: u32, x: i32, y: i32) -> vec4<f32> {
 
 fn sample(base: u32, uv: vec2<f32>) -> vec4<f32> {
     let size = vec2<f32>(f32(blit.width), f32(blit.height));
+    let output_filter = (blit.options >> 1u) & 3u;
+    if (output_filter == 2u) {
+        let p = vec2<i32>(floor(uv * size));
+        return texel(base, p.x, p.y);
+    }
     let scale = max(floor(vec2<f32>(f32(blit.out_width), f32(blit.out_height)) / size), vec2<f32>(1.0));
     let t = uv * size;
     let d = fract(t) - 0.5;
     let region = 0.5 - 0.5 / scale;
-    let p = floor(t) + (d - clamp(d, -region, region)) * scale;
+    var p = floor(t) + (d - clamp(d, -region, region)) * scale;
+    if (output_filter == 1u) { p = t - 0.5; }
     let origin = floor(p);
     let f = p - origin;
     let x = i32(origin.x);
@@ -48,11 +54,59 @@ fn sample(base: u32, uv: vec2<f32>) -> vec4<f32> {
     return mix(top, bottom, f.y);
 }
 
+fn scene(uv: vec2<f32>) -> vec3<f32> {
+    let c = sample(blit.current, uv).rgb;
+    let mode = (blit.options >> 3u) & 3u;
+    if (blit.blend == 0u || mode == 1u) { return c; }
+    let previous = sample(blit.previous, uv).rgb;
+    if (mode == 2u) {
+        // Preserve temporal smoothing in still regions; favor the current
+        // field where motion would otherwise leave a double image.
+        let delta = abs(c - previous);
+        let motion = smoothstep(0.025, 0.12, max(delta.r, max(delta.g, delta.b)));
+        return mix((c + previous) * 0.5, c, motion);
+    }
+    return (c + previous) * 0.5;
+}
+
+fn luma(c: vec3<f32>) -> f32 { return dot(c, vec3<f32>(0.299, 0.587, 0.114)); }
+
+fn edge_aa(uv: vec2<f32>, center: vec3<f32>) -> vec3<f32> {
+    // Fast approximate edge AA, evaluated in image space. Flat regions return
+    // unchanged, while edge direction controls subpixel reconstruction.
+    let step = 1.0 / vec2<f32>(f32(blit.width), f32(blit.height));
+    let nw = luma(scene(uv + step * vec2<f32>(-1.0, -1.0)));
+    let ne = luma(scene(uv + step * vec2<f32>(1.0, -1.0)));
+    let sw = luma(scene(uv + step * vec2<f32>(-1.0, 1.0)));
+    let se = luma(scene(uv + step * vec2<f32>(1.0, 1.0)));
+    let m = luma(center);
+    let low = min(m, min(min(nw, ne), min(sw, se)));
+    let high = max(m, max(max(nw, ne), max(sw, se)));
+    if (high - low < max(0.0312, high * 0.125)) { return center; }
+    var direction = vec2<f32>(-((nw + ne) - (sw + se)), (nw + sw) - (ne + se));
+    let reduce = max((nw + ne + sw + se) * 0.03125, 0.0078125);
+    direction = clamp(direction / (min(abs(direction.x), abs(direction.y)) + reduce), vec2<f32>(-8.0), vec2<f32>(8.0)) * step;
+    let a = 0.5 * (scene(uv - direction / 6.0) + scene(uv + direction / 6.0));
+    let b = a * 0.5 + 0.25 * (scene(uv - direction * 0.5) + scene(uv + direction * 0.5));
+    let lb = luma(b);
+    return select(b, a, lb < low || lb > high);
+}
+
 @fragment
 fn fs(in: VertexOut) -> @location(0) vec4<f32> {
-    var c = sample(blit.current, in.uv);
-    if (blit.blend != 0u) {
-        c = (c + sample(blit.previous, in.uv)) * 0.5;
+    var c = scene(in.uv);
+    if ((blit.options & 1u) != 0u) { c = edge_aa(in.uv, c); }
+    let strength = f32((blit.options >> 8u) & 127u) / 100.0;
+    if (strength > 0.0) {
+        let step = 1.0 / vec2<f32>(f32(blit.width), f32(blit.height));
+        let n = scene(in.uv - vec2<f32>(0.0, step.y));
+        let s = scene(in.uv + vec2<f32>(0.0, step.y));
+        let w = scene(in.uv - vec2<f32>(step.x, 0.0));
+        let e = scene(in.uv + vec2<f32>(step.x, 0.0));
+        let low = min(c, min(min(n, s), min(w, e)));
+        let high = max(c, max(max(n, s), max(w, e)));
+        // Bounded unsharp mask avoids bright/dark halos outside local colors.
+        c = clamp(c + strength * (c - (n + s + w + e) * 0.25), low, high);
     }
-    return vec4<f32>(c.rgb, 1.0);
+    return vec4<f32>(clamp(c, vec3<f32>(0.0), vec3<f32>(1.0)), 1.0);
 }
